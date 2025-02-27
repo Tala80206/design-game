@@ -19,6 +19,17 @@ document.addEventListener("DOMContentLoaded", function () {
     let aborigine = { x: 100, y: 200, width: 60, height: 80, speed: 5 };
     let klopunya = { x: 600, y: 200, width: 50, height: 70, dx: 3, dy: 3 };
 
+    let traps = []; // Масив для капостей Кльопуні
+
+    // Завантаження звуків
+    const barkSound = new Audio("bark.mp3");
+    const trapSound = new Audio("trap.mp3");
+    const winSound = new Audio("win.mp3");
+    const loseSound = new Audio("lose.mp3");
+    const bgMusic = new Audio("background.mp3");
+    bgMusic.loop = true;
+    bgMusic.play();
+
     function drawCharacter(character, img) {
         ctx.drawImage(img, character.x, character.y, character.width, character.height);
     }
@@ -33,6 +44,12 @@ document.addEventListener("DOMContentLoaded", function () {
         if (klopunya.y <= 0 || klopunya.y + klopunya.height >= canvas.height) {
             klopunya.dy *= -1;
         }
+
+        // Кльопуня іноді створює капості
+        if (Math.random() < 0.01) {
+            traps.push({ x: klopunya.x, y: klopunya.y, width: 30, height: 30 });
+            trapSound.play();
+        }
     }
 
     function checkCollision() {
@@ -40,6 +57,18 @@ document.addEventListener("DOMContentLoaded", function () {
                aborigine.x + aborigine.width > klopunya.x &&
                aborigine.y < klopunya.y + klopunya.height &&
                aborigine.y + aborigine.height > klopunya.y;
+    }
+
+    function checkTraps() {
+        for (let trap of traps) {
+            if (aborigine.x < trap.x + trap.width &&
+                aborigine.x + aborigine.width > trap.x &&
+                aborigine.y < trap.y + trap.height &&
+                aborigine.y + aborigine.height > trap.y) {
+                aborigine.speed = 2; // Уповільнення від капості
+                setTimeout(() => { aborigine.speed = 5; }, 2000);
+            }
+        }
     }
 
     let keys = {};
@@ -56,9 +85,16 @@ document.addEventListener("DOMContentLoaded", function () {
         if (keys["ArrowRight"] && aborigine.x + aborigine.width < canvas.width) aborigine.x += aborigine.speed;
 
         moveKlopunya();
+        checkTraps();
 
         drawCharacter(aborigine, aborigineImg);
         drawCharacter(klopunya, klopunyaImg);
+
+        // Малювання капостей (пасток)
+        ctx.fillStyle = "red";
+        for (let trap of traps) {
+            ctx.fillRect(trap.x, trap.y, trap.width, trap.height);
+        }
 
         if (checkCollision()) {
             level++;
@@ -66,7 +102,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 bgImg.src = backgrounds[level];
                 aborigine.x = 100;
                 klopunya.x = 600;
+                barkSound.play();
             } else {
+                winSound.play();
                 alert("Абориген зловив Кльопуню! Кльопуня облизує йому ніс ❤️");
                 document.location.reload();
             }
