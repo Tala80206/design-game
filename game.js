@@ -4,12 +4,23 @@ document.addEventListener("DOMContentLoaded", function () {
     canvas.width = 800;
     canvas.height = 400;
 
-    let aborigine = { x: 100, y: 200, width: 50, height: 50, speed: 5 };
-    let klopunya = { x: 600, y: 200, width: 40, height: 40, dx: 2, dy: 2 };
+    // Завантаження спрайтів
+    const aborigineImg = new Image();
+    aborigineImg.src = "aborigene.png";
 
-    function drawCharacter(character, color) {
-        ctx.fillStyle = color;
-        ctx.fillRect(character.x, character.y, character.width, character.height);
+    const klopunyaImg = new Image();
+    klopunyaImg.src = "klopunya.png";
+
+    const backgrounds = ["city.png", "park.png", "home.png"];
+    let level = 0;
+    let bgImg = new Image();
+    bgImg.src = backgrounds[level];
+
+    let aborigine = { x: 100, y: 200, width: 60, height: 80, speed: 5 };
+    let klopunya = { x: 600, y: 200, width: 50, height: 70, dx: 3, dy: 3 };
+
+    function drawCharacter(character, img) {
+        ctx.drawImage(img, character.x, character.y, character.width, character.height);
     }
 
     function moveKlopunya() {
@@ -37,6 +48,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function gameLoop() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
         if (keys["ArrowUp"] && aborigine.y > 0) aborigine.y -= aborigine.speed;
         if (keys["ArrowDown"] && aborigine.y + aborigine.height < canvas.height) aborigine.y += aborigine.speed;
@@ -45,15 +57,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
         moveKlopunya();
 
-        drawCharacter(aborigine, "blue");
-        drawCharacter(klopunya, "red");
+        drawCharacter(aborigine, aborigineImg);
+        drawCharacter(klopunya, klopunyaImg);
 
         if (checkCollision()) {
-            alert("Абориген зловив Кльопуню! Кльопуня облизує йому ніс ❤️");
-            document.location.reload();
-        } else {
-            requestAnimationFrame(gameLoop);
+            level++;
+            if (level < backgrounds.length) {
+                bgImg.src = backgrounds[level];
+                aborigine.x = 100;
+                klopunya.x = 600;
+            } else {
+                alert("Абориген зловив Кльопуню! Кльопуня облизує йому ніс ❤️");
+                document.location.reload();
+            }
         }
+
+        requestAnimationFrame(gameLoop);
     }
 
     gameLoop();
