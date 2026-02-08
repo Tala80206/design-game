@@ -1,12 +1,53 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upcycle Challenge</title>
-    <script type="module" src="./index.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Patchwork Lab — навчальна гра</title>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-    <div id="root"></div>
+  <main class="container">
+    <header>
+      <h1>🧵 Patchwork Lab</h1>
+      <p class="subtitle">
+        Збери ковдру з клаптиків, відповідай на запитання та розвивай дизайн-компетентності.
+      </p>
+    </header>
+
+    <section class="panel info-panel">
+      <div><strong>Раунд:</strong> <span id="round">1</span>/3</div>
+      <div><strong>Бали:</strong> <span id="score">0</span></div>
+      <div><strong>Час:</strong> <span id="time">45</span> c</div>
+      <button id="resetBtn" class="ghost-btn" type="button">Почати знову</button>
+    </section>
+
+    <section class="panel game-area">
+      <div>
+        <h2>Полотно (3×3)</h2>
+        <div id="board" class="board" aria-label="Полотно для печворку"></div>
+      </div>
+
+      <div>
+        <h2>Клаптики</h2>
+        <p class="help">Натисни на клітинку полотна, потім обери клаптик.</p>
+        <div id="palette" class="palette"></div>
+      </div>
+    </section>
+
+    <section class="panel question-panel">
+      <h2>Компетентнісне запитання</h2>
+      <p id="questionText">Завантаження...</p>
+      <div id="answers" class="answers"></div>
+    </section>
+
+    <section class="panel result-panel" id="resultPanel" hidden>
+      <h2>Підсумок гри</h2>
+      <p id="resultText"></p>
+      <ul id="skillsList"></ul>
+    </section>
+  </main>
+
+  <script src="./game.js"></script>
 </body>
 </html>
