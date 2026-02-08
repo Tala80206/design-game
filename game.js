@@ -1,117 +1,217 @@
-document.addEventListener("DOMContentLoaded", function () {
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = 800;
-    canvas.height = 400;
+const patches = [
+  { name: "Клітинка", color: "#ef476f" },
+  { name: "Хвиля", color: "#118ab2" },
+  { name: "Листя", color: "#06d6a0" },
+  { name: "Зигзаг", color: "#9b5de5" },
+  { name: "Етно", color: "#f78c2f" },
+  { name: "Мінімал", color: "#3a86ff" },
+];
 
-    // Завантаження спрайтів
-    const aborigineImg = new Image();
-    aborigineImg.src = "aborigene.png";
+const questions = [
+  {
+    q: "Яка компетентність найкраще розвивається, коли ви комбінуєте різні фактури у єдину композицію?",
+    options: ["Критичне мислення", "Фінансова грамотність", "Кулінарні навички"],
+    correct: 0,
+    skill: "Критичне мислення: порівняння і вибір оптимальних рішень",
+  },
+  {
+    q: "Ви працюєте в парі, ділите ролі та погоджуєте стиль ковдри. Що тренуєте найбільше?",
+    options: ["Командну взаємодію", "Механічну пам'ять", "Швидке читання"],
+    correct: 0,
+    skill: "Комунікація та командна робота",
+  },
+  {
+    q: "Потрібно створити естетичний виріб з обмеженої кількості тканини. Яка навичка ключова?",
+    options: ["Планування ресурсів", "Усне рахування", "Сліпе копіювання"],
+    correct: 0,
+    skill: "Проєктування і раціональне використання ресурсів",
+  },
+  {
+    q: "Якщо ви переробляєте старий одяг у новий виріб, який підхід ви практикуєте?",
+    options: ["Апсайклінг та сталий дизайн", "Деструктивний дизайн", "Пасивне споживання"],
+    correct: 0,
+    skill: "Екологічне мислення і відповідальність",
+  },
+  {
+    q: "Що найкраще допомагає зберегти цілісність орнаменту в печворку?",
+    options: ["Попередній ескіз і модульна сітка", "Випадкове розміщення", "Лише імпровізація без плану"],
+    correct: 0,
+    skill: "Візуальне планування та структурне мислення",
+  },
+];
 
-    const klopunyaImg = new Image();
-    klopunyaImg.src = "klopunya.png";
+const state = {
+  round: 1,
+  score: 0,
+  timeLeft: 45,
+  selectedCell: null,
+  answersGiven: 0,
+  usedSkills: new Set(),
+  questionPool: [...questions].sort(() => Math.random() - 0.5),
+};
 
-    const backgrounds = ["city.png", "park.png", "home.png"];
-    let level = 0;
-    let bgImg = new Image();
-    bgImg.src = backgrounds[level];
+const roundEl = document.getElementById("round");
+const scoreEl = document.getElementById("score");
+const timeEl = document.getElementById("time");
+const boardEl = document.getElementById("board");
+const paletteEl = document.getElementById("palette");
+const questionTextEl = document.getElementById("questionText");
+const answersEl = document.getElementById("answers");
+const resetBtn = document.getElementById("resetBtn");
+const resultPanel = document.getElementById("resultPanel");
+const resultText = document.getElementById("resultText");
+const skillsList = document.getElementById("skillsList");
 
-    let aborigine = { x: 100, y: 200, width: 60, height: 80, speed: 5 };
-    let klopunya = { x: 600, y: 200, width: 50, height: 70, dx: 3, dy: 3 };
+let timerId;
 
-    let traps = []; // Масив для капостей Кльопуні
+function renderBoard() {
+  boardEl.innerHTML = "";
+  for (let i = 0; i < 9; i += 1) {
+    const cell = document.createElement("button");
+    cell.type = "button";
+    cell.className = "cell";
+    cell.dataset.index = i;
+    cell.addEventListener("click", () => selectCell(cell));
+    boardEl.append(cell);
+  }
+}
 
-    // Завантаження звуків
-    const barkSound = new Audio("bark.mp3");
-    const trapSound = new Audio("trap.mp3");
-    const winSound = new Audio("win.mp3");
-    const loseSound = new Audio("lose.mp3");
-    const bgMusic = new Audio("background.mp3");
-    bgMusic.loop = true;
-    bgMusic.play();
+function renderPalette() {
+  paletteEl.innerHTML = "";
+  patches.forEach((patch) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "patch";
+    btn.style.background = patch.color;
+    btn.textContent = patch.name;
+    btn.addEventListener("click", () => placePatch(patch));
+    paletteEl.append(btn);
+  });
+}
 
-    function drawCharacter(character, img) {
-        ctx.drawImage(img, character.x, character.y, character.width, character.height);
+function selectCell(cell) {
+  if (state.selectedCell) {
+    state.selectedCell.classList.remove("selected");
+  }
+  state.selectedCell = cell;
+  state.selectedCell.classList.add("selected");
+}
+
+function placePatch(patch) {
+  if (!state.selectedCell || state.round > 3) return;
+
+  if (!state.selectedCell.dataset.filled) {
+    state.score += 4;
+  }
+  state.selectedCell.style.background = patch.color;
+  state.selectedCell.textContent = patch.name;
+  state.selectedCell.dataset.filled = "1";
+  state.selectedCell.classList.remove("selected");
+  state.selectedCell = null;
+  updateHeader();
+
+  const filledCells = [...document.querySelectorAll(".cell")].filter((c) => c.dataset.filled).length;
+  if (filledCells % 3 === 0) {
+    state.round += 1;
+    updateHeader();
+  }
+
+  if (state.round > 3) {
+    finishGame();
+  }
+}
+
+function showQuestion() {
+  const current = state.questionPool[state.answersGiven % state.questionPool.length];
+  questionTextEl.textContent = current.q;
+  answersEl.innerHTML = "";
+
+  current.options.forEach((option, index) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "answer";
+    btn.textContent = option;
+
+    btn.addEventListener("click", () => {
+      if (answersEl.dataset.locked === "1") return;
+      answersEl.dataset.locked = "1";
+      state.answersGiven += 1;
+
+      if (index === current.correct) {
+        btn.classList.add("correct");
+        state.score += 10;
+        state.usedSkills.add(current.skill);
+      } else {
+        btn.classList.add("wrong");
+      }
+
+      updateHeader();
+      setTimeout(() => {
+        answersEl.dataset.locked = "";
+        if (state.round <= 3) {
+          showQuestion();
+        }
+      }, 500);
+    });
+
+    answersEl.append(btn);
+  });
+}
+
+function updateHeader() {
+  roundEl.textContent = Math.min(state.round, 3);
+  scoreEl.textContent = state.score;
+  timeEl.textContent = state.timeLeft;
+}
+
+function startTimer() {
+  clearInterval(timerId);
+  timerId = setInterval(() => {
+    state.timeLeft -= 1;
+    updateHeader();
+    if (state.timeLeft <= 0) {
+      finishGame();
     }
+  }, 1000);
+}
 
-    function moveKlopunya() {
-        klopunya.x += klopunya.dx;
-        klopunya.y += klopunya.dy;
+function finishGame() {
+  clearInterval(timerId);
+  resultPanel.hidden = false;
+  const competencyRate = state.usedSkills.size >= 3 ? "високий" : "базовий";
 
-        if (klopunya.x <= 0 || klopunya.x + klopunya.width >= canvas.width) {
-            klopunya.dx *= -1;
-        }
-        if (klopunya.y <= 0 || klopunya.y + klopunya.height >= canvas.height) {
-            klopunya.dy *= -1;
-        }
+  resultText.textContent = `Твій результат: ${state.score} балів. Рівень розвитку компетентностей: ${competencyRate}.`;
+  skillsList.innerHTML = "";
 
-        // Кльопуня іноді створює капості
-        if (Math.random() < 0.01) {
-            traps.push({ x: klopunya.x, y: klopunya.y, width: 30, height: 30 });
-            trapSound.play();
-        }
-    }
+  if (state.usedSkills.size === 0) {
+    const li = document.createElement("li");
+    li.textContent = "Спробуй відповідати на запитання, щоб відкрити компетентності.";
+    skillsList.append(li);
+  } else {
+    state.usedSkills.forEach((skill) => {
+      const li = document.createElement("li");
+      li.textContent = skill;
+      skillsList.append(li);
+    });
+  }
+}
 
-    function checkCollision() {
-        return aborigine.x < klopunya.x + klopunya.width &&
-               aborigine.x + aborigine.width > klopunya.x &&
-               aborigine.y < klopunya.y + klopunya.height &&
-               aborigine.y + aborigine.height > klopunya.y;
-    }
+function resetGame() {
+  state.round = 1;
+  state.score = 0;
+  state.timeLeft = 45;
+  state.selectedCell = null;
+  state.answersGiven = 0;
+  state.usedSkills = new Set();
+  state.questionPool = [...questions].sort(() => Math.random() - 0.5);
+  resultPanel.hidden = true;
 
-    function checkTraps() {
-        for (let trap of traps) {
-            if (aborigine.x < trap.x + trap.width &&
-                aborigine.x + aborigine.width > trap.x &&
-                aborigine.y < trap.y + trap.height &&
-                aborigine.y + aborigine.height > trap.y) {
-                aborigine.speed = 2; // Уповільнення від капості
-                setTimeout(() => { aborigine.speed = 5; }, 2000);
-            }
-        }
-    }
+  renderBoard();
+  renderPalette();
+  showQuestion();
+  updateHeader();
+  startTimer();
+}
 
-    let keys = {};
-    window.addEventListener("keydown", (e) => keys[e.key] = true);
-    window.addEventListener("keyup", (e) => keys[e.key] = false);
-
-    function gameLoop() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-
-        if (keys["ArrowUp"] && aborigine.y > 0) aborigine.y -= aborigine.speed;
-        if (keys["ArrowDown"] && aborigine.y + aborigine.height < canvas.height) aborigine.y += aborigine.speed;
-        if (keys["ArrowLeft"] && aborigine.x > 0) aborigine.x -= aborigine.speed;
-        if (keys["ArrowRight"] && aborigine.x + aborigine.width < canvas.width) aborigine.x += aborigine.speed;
-
-        moveKlopunya();
-        checkTraps();
-
-        drawCharacter(aborigine, aborigineImg);
-        drawCharacter(klopunya, klopunyaImg);
-
-        // Малювання капостей (пасток)
-        ctx.fillStyle = "red";
-        for (let trap of traps) {
-            ctx.fillRect(trap.x, trap.y, trap.width, trap.height);
-        }
-
-        if (checkCollision()) {
-            level++;
-            if (level < backgrounds.length) {
-                bgImg.src = backgrounds[level];
-                aborigine.x = 100;
-                klopunya.x = 600;
-                barkSound.play();
-            } else {
-                winSound.play();
-                alert("Абориген зловив Кльопуню! Кльопуня облизує йому ніс ❤️");
-                document.location.reload();
-            }
-        }
-
-        requestAnimationFrame(gameLoop);
-    }
-
-    gameLoop();
-});
+resetBtn.addEventListener("click", resetGame);
+resetGame();
